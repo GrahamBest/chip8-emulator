@@ -1,0 +1,1 @@
+clang -c -g src/main.cpp src/chip8/chip8.cpp  -std=c++20 --target=x86_64-pc-windows-msvc -I"C:/Program Files (x86)/Windows Kits/10/Include/10.0.19041.0/um" -I"C:/Program Files (x86)/Windows Kits/10/Include/10.0.19041.0/shared" 

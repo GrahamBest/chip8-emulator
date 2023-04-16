@@ -1,0 +1,1 @@
+clang -o main.exe main.o chip8.o -g -std=c++20 --target=x86_64-pc-windows-msvc  -L"C:/Program Files (x86)/Windows Kits/10/Lib/10.0.19041.0/um/x64" -L"C:/Program Files (x86)/Windows Kits/10/Lib/10.0.19041.0/ucrt/x64"  -lkernel32 -luser32 -lgdi32 -lshell32

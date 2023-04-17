@@ -2,6 +2,7 @@
 
 #include "chip8.hpp"
 #include <random>
+#include "../ppu/ppu.hpp"
 
 enum HIOPCODE
 {
@@ -295,7 +296,25 @@ namespace instructions
 	}
 
 	/* DRAW FUNCTION TO IMPLEMENT SOON */
-	
+	void draw(const register_t& vx, const register_t& vy, std::uint8_t n, std::uint8_t* data)
+	{
+		for (int i = 0; i < n; i++)
+		{
+			for (std::int8_t b = 7; b >= 0; b--)
+			{
+				for (int x = 0; x < n; x++)
+				{
+					std::uint8_t current_byte = data[register_ptr->register_array[REGISTERS::VI].value_union.value16 + x];
+
+					std::uint8_t pixel = (current_byte >> b) & 1;
+
+					if (pixel != 0)
+						SDL_RenderDrawPoint(ppu_ptr->get_renderer(), vx.value_union.value + b * 3, vy.value_union.value + x * 3);
+				}
+			}
+		}
+	}
+
 	/* SKIP IF PRESSED INSTRUCTION TO IMPLEMENT SOON*/
 
 	/* SKIP IF NOT PRESSED TO IMPLEMENT SOON */

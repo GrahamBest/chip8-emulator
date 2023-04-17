@@ -1,5 +1,6 @@
 #include "chip8.hpp"
 #include "instructions.hpp"
+#include "../ppu/ppu.hpp"
 #include <memory>
 
 c_chip8::c_chip8(const std::string& filename)
@@ -22,6 +23,8 @@ c_chip8::c_chip8(const std::string& filename)
 
 void c_chip8::emulate()
 {
+	SDL_Event evnt;
+
 	while (true)
 	{
 		std::uint16_t high_bits = this->data[register_ptr->register_array[REGISTERS::PC].value_union.value16];
@@ -294,7 +297,21 @@ void c_chip8::emulate()
 				break;
 			}
 
-			/* IMPLEMENT DRAW AND INPUT INSTRUCTIONS HERE */
+			case HIOPCODE::DRW:
+			{
+				std::uint16_t regx_id = opcode & 0x0F00;
+				regx_id >>= 8;
+				register_t& regx = reinterpret_cast<register_t&>(register_ptr->register_array[regx_id]);
+
+				std::uint16_t regy_id = opcode & 0x00F0;
+				regy_id >>= 4;
+				register_t& regy = reinterpret_cast<register_t&>(register_ptr->register_array[regy_id]);
+
+				std::uint8_t n = opcode & 0x000F;
+
+				instructions::draw(regx, regx, n, this->data.get());
+				break;
+			}
 
 			/* implement skp if pressed or not pressed here soon ! */
 			case HIOPCODE::SKP:
@@ -412,6 +429,10 @@ void c_chip8::emulate()
 			}
 		}
 
+		if (SDL_PollEvent(&evnt) && evnt.type == SDL_QUIT)
+			break;
+
+		SDL_RenderPresent(ppu_ptr->get_renderer());
 		register_ptr->register_array[REGISTERS::PC].value_union.value16 += 2;
 	}
 }

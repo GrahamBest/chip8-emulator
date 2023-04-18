@@ -57,9 +57,9 @@ namespace instructions
 	*/
 	void call(std::uint16_t value)
 	{
-		register_ptr->increment<REGISTERS::VSP, std::uint8_t>();
-		register_ptr->set_value<REGISTERS::VSP, std::uint8_t>(register_ptr->get_value<REGISTERS::PC, std::uint16_t>());
-		register_ptr->set_value<REGISTERS::PC, std::uint16_t>(value - 0x200); // it's based at 0x200 and the roms are based at 0x00 so we need to fix the image
+		register_ptr->register_array[REGISTERS::VSP].value_union.value++;
+		register_ptr->register_array[REGISTERS::VSP].value_union.value = register_ptr->register_array[REGISTERS::PC].value_union.value16;
+		register_ptr->register_array[REGISTERS::PC].value_union.value16 = value - 0x200; // it's based at 0x200 and the roms are based at 0x00 so we need to fix the image
 		// base by subtracting off 0x200
 	}
 
@@ -68,7 +68,7 @@ namespace instructions
 	*/
 	void jmp(std::uint16_t value)
 	{
-		register_ptr->set_value<REGISTERS::PC, std::uint16_t>(value - 0x200); // it's based at 0x200 and the roms are based at 0x00 so we need to fix the image
+		register_ptr->register_array[REGISTERS::PC].value_union.value16 = value - 0x200; // it's based at 0x200 and the roms are based at 0x00 so we need to fix the image
 		// base by subtracting off 0x200
 	}
 
@@ -77,8 +77,8 @@ namespace instructions
 	*/
 	void ret()
 	{
-		register_ptr->set_value<REGISTERS::PC, std::uint16_t>(register_ptr->get_value<REGISTERS::VSP, std::uint8_t>());
-		register_ptr->decrement<REGISTERS::VSP, std::uint8_t>();
+		register_ptr->register_array[REGISTERS::PC].value_union.value16 = register_ptr->register_array[REGISTERS::VSP].value_union.value;
+		register_ptr->register_array[REGISTERS::VSP].value_union.value--;
 	}
 	/*
 	*	SE INSTRUCTION IMPLEMENTATION FOR CHIP8
@@ -309,15 +309,32 @@ namespace instructions
 					std::uint8_t pixel = (current_byte >> b) & 1;
 
 					if (pixel != 0)
-						SDL_RenderDrawPoint(ppu_ptr->get_renderer(), vx.value_union.value + b * 3, vy.value_union.value + x * 3);
+					{
+						SDL_SetRenderDrawColor(ppu_ptr->get_renderer(), 255, 255, 255, 255);
+						SDL_RenderDrawPoint(ppu_ptr->get_renderer(), vx.value_union.value + b, vy.value_union.value + x);
+					}
 				}
 			}
 		}
 	}
 
 	/* SKIP IF PRESSED INSTRUCTION TO IMPLEMENT SOON*/
+	void skip_if_pressed(const register_t& vx, SDL_Event& evnt)
+	{
+		if (evnt.key.keysym.sym == vx.value_union.value)
+		{
+			register_ptr->register_array[REGISTERS::PC].value_union.value16 += 2;
+		}
+	}
 
 	/* SKIP IF NOT PRESSED TO IMPLEMENT SOON */
+	void skip_if_not_pressed(const register_t& vx, SDL_Event& evnt)
+	{
+		if (evnt.key.keysym.sym != vx.value_union.value)
+		{
+		//	register_ptr->register_array[REGISTERS::PC].value_union.value16 += 2;
+		}
+	}
 
 	/*
 	*	LD VX, DT INSTRUCTION IMPLEMENTATION FOR CHIP8
@@ -328,6 +345,17 @@ namespace instructions
 	}
 
 	/* LOAD KEY NUMBER INTO VX INSTRUCTION TO IMPLEMENT SOON */
+	void ld_key_into_register(register_t& val, SDL_Event& evnt)
+	{
+		while (SDL_PollEvent(&evnt))
+		{
+			if (evnt.type == SDL_KEYDOWN)
+			{
+				val.value_union.value = evnt.key.keysym.sym;
+				break;
+			}
+		}
+	}
 	
 	/*
 	*	LD DT, VX INSTRUCTION IMPLEMENTATION FOR CHIP8
@@ -355,7 +383,24 @@ namespace instructions
 
 	/* LD F, VX IMPLEMENTATION SOON */	
 
+	void ld_fvx(const register_t& reg, std::uint16_t fontset_epilogue_data_block_start)
+	{
+		register_ptr->register_array[REGISTERS::VI].value_union.value16 = fontset_epilogue_data_block_start + reg.value_union.value * 5;
+	}
+
 	/* LD B, VX IMPLEMENTATION SOON */
+	void ld_bvx(register_t& arg, std::uint8_t* data)
+	{
+		std::uint8_t digits = arg.value_union.value;
+
+		data[register_ptr->register_array[REGISTERS::VI].value_union.value16 + 2] = digits % 10;
+		digits /= 10;
+
+		data[register_ptr->register_array[REGISTERS::VI].value_union.value16 + 1] = digits % 10;
+		digits /= 10;
+
+		data[register_ptr->register_array[REGISTERS::VI].value_union.value16] = digits % 10;
+	}
 
 	/* LD [I], VX IMPLEMENTATION */
 	void ld_iarrayfromregister(const std::uint8_t& n, std::uint8_t* data)

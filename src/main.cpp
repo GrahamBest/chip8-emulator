@@ -3,10 +3,10 @@
 
 int main()
 {
-	std::string filename = "MINIMALGAME.ch8";
+	std::string filename = "pong.ch8";
 	c_chip8 chip8{ filename };
 
 	chip8.emulate();
 
 	return 0;
-}
+}	

@@ -37,11 +37,6 @@ struct register_t
 	{
 		std::uint8_t value;
 		std::uint16_t value16;
-
-		register_t& operator++()
-		{
-			value++;
-		}
 	};
 
 	values value_union;

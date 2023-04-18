@@ -23,6 +23,7 @@ public:
 		SDL_CreateWindowAndRenderer(WINDOW_WIDTH, WINDOW_WIDTH, 0, &this->window, &this->renderer); 
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
 		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+		SDL_RenderSetScale(this->renderer, 10, 10);
 
 		if (this->window == nullptr)
 		{

@@ -11,15 +11,49 @@ c_chip8::c_chip8(const std::string& filename)
 	{
 		this->file.seekg(0, std::ios::end);
 		this->length = this->file.tellg();
-		this->data = std::make_unique<std::uint8_t[]>(this->length);
+		/* we add the max fontset bytes so we can put the data there ourselves. */
+		this->data = std::make_unique<std::uint8_t[]>(this->length + MAX_FONTSET_BYTES);
 		this->file.seekg(0, std::ios::beg);
 		this->file.read(reinterpret_cast<char*>(this->data.get()), this->length);
+
+		this->setup_fontset();
 	}
 	else
 	{
 		std::printf("EMULATOR FATAL ERROR: Couldn't open %s for writing!\n", filename.c_str());
 	}
 }
+
+void c_chip8::setup_fontset()
+{
+
+	std::uint8_t* ptr = &this->data[this->length];
+
+	std::uint8_t fontset[MAX_FONTSET_BYTES] =
+	{
+		0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+		0x20, 0x60, 0x20, 0x20, 0x70, // 1
+		0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+		0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+		0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+		0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+		0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+		0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+		0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+		0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+		0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+		0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+		0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+		0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+		0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+		0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+	};
+
+	for (int i = 0; i < MAX_FONTSET_BYTES; i++)
+	{
+		ptr[i] = fontset[i];
+	}
+};
 
 void c_chip8::emulate()
 {
@@ -33,8 +67,7 @@ void c_chip8::emulate()
 		opcode <<= 8;
 		opcode |= low_bits;
 
-		std::printf("%x high_bits %x low_bits\n", high_bits, low_bits);
-		std::printf("combined opcode = %x\n", opcode);
+		std::printf("%X%X \n", high_bits, low_bits);
 
 		std::uint16_t opcode_instruction = opcode & 0xF000;
 
@@ -322,12 +355,22 @@ void c_chip8::emulate()
 				{
 					case LOWOPCODE::SKPVX:
 					{
+						std::uint16_t regx_id = opcode & 0x0F00;
+						regx_id >>= 8;
+						register_t& regx = reinterpret_cast<register_t&>(register_ptr->register_array[regx_id]);
 
+						instructions::skip_if_pressed(regx, evnt);
+						
 						break;
 					}
 
 					case LOWOPCODE::SKNPVX:
 					{
+						std::uint16_t regx_id = opcode & 0x0F00;
+						regx_id >>= 8;
+						register_t& regx = reinterpret_cast<register_t&>(register_ptr->register_array[regx_id]);
+
+						instructions::skip_if_not_pressed(regx, evnt);
 
 						break;
 					}
@@ -353,9 +396,12 @@ void c_chip8::emulate()
 						break;
 					}
 					case LOWOPCODE::LDVXK:
-					{
-						/*IMPLEMENTATION FOR LD VX INTO KEY*/
+					{	std::uint16_t reg_id = opcode & 0x0F00;
+						reg_id >>= 8;
 
+						register_t& reg = reinterpret_cast<register_t&>(register_ptr->register_array[reg_id]);
+
+						instructions::ld_key_into_register(reg, evnt);
 						break;
 					}
 					case LOWOPCODE::LDDTVX:
@@ -392,11 +438,22 @@ void c_chip8::emulate()
 					case LOWOPCODE::LDFVX:
 					{
 						/*IMPLEMENTATION FOR LD F, VX*/
+						std::uint16_t reg_id = opcode & 0x0F00;
+						reg_id >>= 8;
+
+						register_t& reg = reinterpret_cast<register_t&>(register_ptr->register_array[reg_id]);
+
+						instructions::ld_fvx(reg, this->length);
 						break;
 					}
 					case LOWOPCODE::LDBVX:
 					{
-						/*IMPLEMENTATION FOR LD B, VX*/
+						std::uint16_t reg_id = opcode & 0x0F00;
+						reg_id >>= 8;
+
+						register_t& reg = reinterpret_cast<register_t&>(register_ptr->register_array[reg_id]);
+
+						instructions::ld_bvx(reg, this->data.get());
 						break;
 					}
 					case LOWOPCODE::LDIARRAYFROMV0VX:
@@ -433,6 +490,8 @@ void c_chip8::emulate()
 			break;
 
 		SDL_RenderPresent(ppu_ptr->get_renderer());
+		SDL_SetRenderDrawColor(ppu_ptr->get_renderer(), 0, 0, 0, 0);
+		SDL_RenderClear(ppu_ptr->get_renderer());
 		register_ptr->register_array[REGISTERS::PC].value_union.value16 += 2;
 	}
 }

@@ -17,11 +17,17 @@ c_chip8::c_chip8(const std::string& filename)
 		this->file.read(reinterpret_cast<char*>(this->data.get()), this->length);
 
 		this->setup_fontset();
+		this->setup_pixels();
 	}
 	else
 	{
 		std::printf("EMULATOR FATAL ERROR: Couldn't open %s for writing!\n", filename.c_str());
 	}
+}
+
+void c_chip8::setup_pixels()
+{
+	this->pixel_array = std::make_unique<std::uint8_t[]>(64 * 32);
 }
 
 void c_chip8::setup_fontset()
@@ -61,18 +67,54 @@ void c_chip8::emulate()
 
 	while (true)
 	{
+		if (register_ptr->register_array[REGISTERS::PC].value_union.value16 > this->length)
+		{
+			std::cin.get();
+			break;
+		}
+
 		std::uint16_t high_bits = this->data[register_ptr->register_array[REGISTERS::PC].value_union.value16];
 		std::uint8_t low_bits = this->data[register_ptr->register_array[REGISTERS::PC].value_union.value16 + 1];
 		std::uint16_t opcode = static_cast<std::uint16_t>(high_bits);
 		opcode <<= 8;
 		opcode |= low_bits;
 
-		std::printf("%X%X \n", high_bits, low_bits);
+		std::printf("%X%X PC = %i\n", high_bits, low_bits, register_ptr->register_array[REGISTERS::PC].value_union.value16);
 
 		std::uint16_t opcode_instruction = opcode & 0xF000;
 
 		switch (opcode_instruction)
 		{
+			case 0x0000:
+			{
+				/*std::uint8_t low_byte = opcode & 0x00FF;
+
+				switch (low_byte)
+				{
+					case LOWOPCODE::CLS:
+					{
+						instructions::cls();
+
+						break;
+					}
+
+					case LOWOPCODE::RET:
+					{
+						instructions::ret();
+
+						break;
+					}
+
+					default:
+					{
+						break;
+					}
+
+					break;*/
+
+				break;
+				}
+
 			case HIOPCODE::JP:
 			{
 				std::uint16_t value = opcode & 0x0FFF;
@@ -281,6 +323,13 @@ void c_chip8::emulate()
 						instructions::shl(reg);
 						break;
 					}
+
+					default:
+					{
+						break;
+					}
+
+					break;
 				}
 
 				break;
@@ -342,7 +391,7 @@ void c_chip8::emulate()
 
 				std::uint8_t n = opcode & 0x000F;
 
-				instructions::draw(regx, regx, n, this->data.get());
+				instructions::draw(regx, regx, n, this->data.get(), this->pixel_array.get());
 				break;
 			}
 
@@ -374,6 +423,13 @@ void c_chip8::emulate()
 
 						break;
 					}
+
+					default:
+					{
+						break;
+					}
+
+					break;
 				}
 			
 				break;
@@ -479,19 +535,30 @@ void c_chip8::emulate()
 						break;
 					}
 
+					default:
+					{
+						break;
+					}
+
 					break;
 				}
 
 				break;
 			}
+
+			default:
+			{
+				break;
+			}
+
+			break;
 		}
 
 		if (SDL_PollEvent(&evnt) && evnt.type == SDL_QUIT)
 			break;
 
 		SDL_RenderPresent(ppu_ptr->get_renderer());
-		SDL_SetRenderDrawColor(ppu_ptr->get_renderer(), 0, 0, 0, 0);
-		SDL_RenderClear(ppu_ptr->get_renderer());
+
 		register_ptr->register_array[REGISTERS::PC].value_union.value16 += 2;
 	}
 }

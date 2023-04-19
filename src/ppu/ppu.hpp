@@ -43,11 +43,6 @@ public:
 		SDL_Quit();
 	}
 
-	void render()
-	{
-
-	}
-
 	SDL_Window* get_window_ptr()
 	{
 		return this->window;

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iostream>
 #include <concepts>
+#include <stack>
 
 constexpr unsigned int MAX_REGISTERS = 21;
 
@@ -98,6 +99,7 @@ public:
 		}
 	}
 
+	std::stack<std::uint16_t> stack;
 	register_t register_array[MAX_REGISTERS];
 private:
 };

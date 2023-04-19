@@ -26,6 +26,10 @@ enum HIOPCODE
 
 enum LOWOPCODE
 {
+	// 0x00NN instructions below
+	CLS = 0xE0,
+	RET = 0xEE,
+
 	VXVY = 0x0,
 	ORVXVY = 0x1,
 	ANDVXVY = 0x2,
@@ -52,13 +56,25 @@ enum LOWOPCODE
 
 namespace instructions
 {
+	
+	void cls()
+	{
+		SDL_SetRenderDrawColor(ppu_ptr->get_renderer(), 0, 0, 0, 0);
+		SDL_RenderClear(ppu_ptr->get_renderer());
+	}
+	
+	void ret()
+	{
+		register_ptr->register_array[REGISTERS::PC].value_union.value16 = register_ptr->stack.top();
+		register_ptr->stack.pop();
+	}
+
 	/*
 	*	CALL INSTRUCTION IMPLEMENTATION FOR CHIP8
 	*/
 	void call(std::uint16_t value)
 	{
-		register_ptr->register_array[REGISTERS::VSP].value_union.value++;
-		register_ptr->register_array[REGISTERS::VSP].value_union.value = register_ptr->register_array[REGISTERS::PC].value_union.value16;
+		register_ptr->stack.push(register_ptr->register_array[REGISTERS::PC].value_union.value16);
 		register_ptr->register_array[REGISTERS::PC].value_union.value16 = value - 0x200; // it's based at 0x200 and the roms are based at 0x00 so we need to fix the image
 		// base by subtracting off 0x200
 	}
@@ -72,14 +88,6 @@ namespace instructions
 		// base by subtracting off 0x200
 	}
 
-	/*
-	*	RETURN INSTRUCTION IMPLEMENTATION FOR CHIP8
-	*/
-	void ret()
-	{
-		register_ptr->register_array[REGISTERS::PC].value_union.value16 = register_ptr->register_array[REGISTERS::VSP].value_union.value;
-		register_ptr->register_array[REGISTERS::VSP].value_union.value--;
-	}
 	/*
 	*	SE INSTRUCTION IMPLEMENTATION FOR CHIP8
 	*/
@@ -278,7 +286,7 @@ namespace instructions
 	void jmp_registerv0addr(std::uint16_t addr)
 	{ 
 		/* subtract 0x200 to rebase the image */
-		register_ptr->set_value<REGISTERS::PC, std::uint16_t>((addr + static_cast<std::uint16_t>(register_ptr->register_array[REGISTERS::V0].value_union.value)) - 0x200);
+		register_ptr->register_array[REGISTERS::PC].value_union.value16 = (addr + static_cast<std::uint16_t>(register_ptr->register_array[REGISTERS::V0].value_union.value));
 	}
 
 	/*
@@ -296,7 +304,7 @@ namespace instructions
 	}
 
 	/* DRAW FUNCTION TO IMPLEMENT SOON */
-	void draw(const register_t& vx, const register_t& vy, std::uint8_t n, std::uint8_t* data)
+	void draw(const register_t& vx, const register_t& vy, std::uint8_t n, std::uint8_t* data, std::uint8_t* pixels)
 	{
 		for (int i = 0; i < n; i++)
 		{

@@ -19,9 +19,11 @@ public:
 
 	void emulate();
 	void setup_fontset();
+	void setup_pixels();
 
 	std::unique_ptr<std::uint8_t[]> data{};
 	std::uint8_t* ptr_to_fontset{};
+	std::unique_ptr<std::uint8_t[]> pixel_array{};
 private:
 	unsigned int length{};
 	std::ifstream file;
